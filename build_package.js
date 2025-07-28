@@ -1,7 +1,7 @@
 const builder = require("electron-builder");
 
-var packageJson = require('./package.json');
-var childProcess = require('child_process');
+var packageJson = require("./package.json");
+var childProcess = require("child_process");
 var isWin = process.platform === "win32";
 
 var exec = (cmd) => {
@@ -15,20 +15,19 @@ var exec = (cmd) => {
       }
     });
   });
-}
+};
 
-process.on('unhandledRejection', error => {
+process.on("unhandledRejection", (error) => {
   // Will print "unhandledRejection err is not defined"
-  console.log('unhandledRejection', error.message);
+  console.log("unhandledRejection", error.message);
 });
 
 (async () => {
-
   const commitsCount = (await exec("git rev-list HEAD --count")).trim();
   const commitID = (await exec("git log --pretty=format:'%h' -n 1")).trim();
 
-  const buildVersion = `${commitsCount} - ${commitID}`;
-  console.log('build-version', buildVersion);
+  const buildVersion = `${commitsCount}`;
+  console.log("build-version", buildVersion);
 
   await builder.build({
     //targets: Platform.MAC.createTarget(),
@@ -36,20 +35,25 @@ process.on('unhandledRejection', error => {
       protocols: {
         name: "Postgres Database",
         schemes: ["postgres", "postgresql"],
-        role: "Editor"
+        role: "Editor",
       },
-      fileAssociations: [{
-        ext: "sql",
-        name: "SQL File",
-      }],
+      fileAssociations: [
+        {
+          ext: "sql",
+          name: "SQL File",
+        },
+      ],
       npmRebuild: false, // because we changed dependency paths postgres manually
-      icon: isWin ? "build_files/icon.ico" : __dirname + "/build_files/icon.icns",
-      productName: process.platform == 'linux' ? 'postbird' : 'Postbird',
+      icon: isWin
+        ? "build_files/icon.ico"
+        : __dirname + "/build_files/icon.icns",
+      productName: process.platform == "linux" ? "postbird" : "Postbird",
       publish: null,
 
       mac: {
         category: "public.app-category.developer-tools",
-        target: ["dmg"],
+        target: ["dmg", "mas"],
+        identity: "Apple Distribution: Seto Elkahfi (NADBSNEZWH)",
         bundleVersion: buildVersion,
         bundleShortVersion: packageJson.version,
         minimumSystemVersion: "10.9.0",
@@ -60,51 +64,18 @@ process.on('unhandledRejection', error => {
         asar: true,
         extraFiles: ["vendor/darwin"],
         asarUnpack: ["node_modules/libpq"],
-        files: ["!vendor"]
+        files: ["!vendor"],
       },
 
-      linux: {
-        category: "Programming",
-        target: ["deb", "rpm", "snap", "appImage", "pacman", "apk"],
-        icon: __dirname + "/build_files/icon.png",
-        mimeTypes: ["application/sql"],
-        description: "Postbird is a cross-platform PostgreSQL GUI client. Simple and efficient, with support of postgres specific features"
+      mas: {
+        entitlements: "build_files/entitlements.mas.plist",
+        appId: "com.postbird.Postbird",
+        identity: "Apple Distribution: Seto Elkahfi (NADBSNEZWH)",
+        provisioningProfile:
+          "/Users/setoelka/Desktop/Splitfire AB/Apple Certificates/Postbird Apple Certificates/Postbird_Mac_AppStore_Connect.provisionprofile",
+        hardenedRuntime: true,
+        gatekeeperAssess: false,
       },
-      rpm: {
-        depends: ["postgresql"],
-        icon: __dirname + "/build_files/icon.png",
-        desktop: "Postbird",
-        synopsis: "PostgreSQL desktop client"
-      },
-      deb: {
-        depends: [
-          'gconf2', 'gconf-service', 'libnotify4', 'libappindicator1',
-          'libxtst6', 'libnss3', 'libxss1', "postgresql-client"
-        ],
-        synopsis: "PostgreSQL desktop client"
-      },
-      snap: {
-        grade: "stable",
-        summary: "PostgreSQL desktop client"
-      },
-      appImage: {
-        synopsis: "PostgreSQL desktop client",
-        category: "Development",
-      },
-      pacman: { },
-      apk: { },
-
-      nsis: {
-        installerIcon: "build_files/icon.ico"
-      },
-      win: {
-        target: ["nsis", "zip", "portable"],
-        verifyUpdateCodeSignature: false,
-        icon: "build_files/icon.ico",
-        extraFiles: [
-          "vendor/win32"
-        ]
-      }
-    }
-  })
+    },
+  });
 })();
